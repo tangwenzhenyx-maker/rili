@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#e92b3a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="万年历" />
+    <title>万年历</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+    <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="view view--home is-active" id="homeView" aria-labelledby="homeTitle">
+        <header class="home-hero">
+          <div class="home-bar">
+            <span>今天</span>
+            <button class="round-action" type="button" id="homeRefreshButton" aria-label="刷新天气">↻</button>
+          </div>
+          <div class="home-date">
+            <p id="homeWeek">星期</p>
+            <h1 id="homeTitle">今天</h1>
+            <span id="homeLunar">农历</span>
+          </div>
+          <div class="tag-row" id="homeTags"></div>
+        </header>
+
+        <section class="home-weather" aria-label="今日天气">
+          <div class="home-weather__main">
+            <div>
+              <span class="section-label">天气</span>
+              <p class="home-weather__temp" id="homeWeatherTemp">--°</p>
+              <p class="home-weather__desc" id="homeWeatherDesc">正在获取天气</p>
+            </div>
+            <div class="weather-symbol weather-symbol--home" id="homeWeatherIcon" aria-hidden="true"></div>
+          </div>
+          <div class="home-weather__side">
+            <span id="homeWeatherMeta">体感 --°</span>
+            <span id="homeWeatherSource">Open-Meteo 在线天气</span>
+            <button class="text-action" type="button" data-nav="weather">看天气</button>
+          </div>
+        </section>
+
+        <section class="today-card" aria-label="今日日期">
+          <div>
+            <span class="section-label">日期</span>
+            <h2 id="homeTodayTitle">今日</h2>
+            <p id="homeTodayMeta">农历</p>
+          </div>
+          <button class="text-action" type="button" data-nav="calendar">看月历</button>
+        </section>
+      </section>
+
+      <section class="view view--calendar" id="calendarView" aria-labelledby="calendarTitle">
+        <header class="red-appbar">
+          <button class="top-icon" type="button" id="prevMonth" aria-label="上个月">‹</button>
+          <div class="month-title">
+            <h1 id="calendarTitle">月份</h1>
+            <input id="dateJump" type="date" aria-label="跳转到日期" />
+          </div>
+          <button class="top-icon" type="button" id="nextMonth" aria-label="下个月">›</button>
+        </header>
+
+        <section class="calendar-sheet">
+          <div class="weekday-row" aria-hidden="true">
+            <span>日</span>
+            <span>一</span>
+            <span>二</span>
+            <span>三</span>
+            <span>四</span>
+            <span>五</span>
+            <span>六</span>
+          </div>
+          <div class="calendar-grid" id="calendarGrid"></div>
+        </section>
+
+        <section class="selected-day" aria-label="选中日期">
+          <div>
+            <span class="section-label">选中日期</span>
+            <h2 id="selectedTitle">日期</h2>
+            <p id="selectedLunar">农历</p>
+          </div>
+          <button class="today-button" type="button" id="todayButton">今天</button>
+          <div class="tag-row selected-day__tags" id="selectedTags"></div>
+        </section>
+      </section>
+
+      <section class="view view--weather" id="weatherView" aria-labelledby="weatherTitle">
+        <section class="weather-stage">
+          <div class="weather-toolbar">
+            <div class="city-picker">
+              <select id="citySelect" aria-label="选择城市">
+                <option value="current">当前位置</option>
+                <option value="tongan">同安</option>
+                <option value="siming">思明</option>
+                <option value="xiamen">厦门</option>
+                <option value="fuzhou">福州</option>
+                <option value="hangzhou">杭州</option>
+                <option value="shanghai">上海</option>
+                <option value="beijing">北京</option>
+                <option value="shenzhen">深圳</option>
+                <option value="guangzhou">广州</option>
+              </select>
+              <button class="weather-icon-button" type="button" id="locateButton" aria-label="定位当前位置">⌖</button>
+            </div>
+            <button class="weather-icon-button" type="button" id="refreshWeatherButton" aria-label="刷新天气">↻</button>
+          </div>
+
+          <div class="weather-main">
+            <div>
+              <p class="weather-temp" id="weatherTemp">--°</p>
+              <h1 id="weatherTitle">天气</h1>
+              <p class="weather-meta-line">
+                <span id="weatherAir">空气 --</span>
+                <span id="weatherHumidity">湿度 --</span>
+                <span id="weatherWind">风速 --</span>
+              </p>
+            </div>
+            <div class="weather-hero-side">
+              <div class="weather-symbol weather-symbol--hero" id="weatherMainIcon" aria-hidden="true"></div>
+              <span class="weather-feels" id="weatherFeels">体感 --°</span>
+            </div>
+          </div>
+
+          <p class="rain-tip" id="weatherTip">联网后显示短时天气趋势</p>
+          <p class="weather-source" id="weatherSource">Open-Meteo 在线天气</p>
+          <div class="weather-visual" aria-hidden="true"></div>
+        </section>
+
+        <section class="hourly-panel" aria-label="未来两小时天气">
+          <div class="panel-heading">
+            <h2>未来两小时</h2>
+            <span id="hourlyUpdate">联网后显示</span>
+          </div>
+          <div class="hourly-grid" id="hourlyStrip"></div>
+        </section>
+
+        <section class="forecast-panel" aria-label="未来天气">
+          <div class="panel-heading">
+            <h2>未来14天</h2>
+            <span>来自 Open-Meteo</span>
+          </div>
+          <div class="forecast-strip" id="forecastStrip"></div>
+        </section>
+      </section>
+
+      <nav class="bottom-tabs" aria-label="主要导航">
+        <button class="tab-button is-active" type="button" data-tab="home">
+          <span class="tab-icon tab-icon--today"></span>
+          <span>首页</span>
+        </button>
+        <button class="tab-button" type="button" data-tab="calendar">
+          <span class="tab-icon tab-icon--calendar"></span>
+          <span>万年历</span>
+        </button>
+        <button class="tab-button" type="button" data-tab="weather">
+          <span class="tab-icon tab-icon--weather"></span>
+          <span>天气</span>
+        </button>
+      </nav>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

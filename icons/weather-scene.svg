@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 900" preserveAspectRatio="xMidYMid slice">
+  <rect width="900" height="900" fill="transparent"/>
+  <path d="M0 618 C150 550 226 626 356 574 C488 522 586 444 718 508 C790 542 842 584 900 562 L900 900 L0 900 Z" fill="#9be3df" opacity=".72"/>
+  <path d="M0 704 C118 646 230 678 330 638 C488 574 642 600 900 504 L900 900 L0 900 Z" fill="#70cfe9" opacity=".54"/>
+  <path d="M88 664 L188 520 L286 666 Z" fill="#b9f1ec" opacity=".82"/>
+  <path d="M206 666 L360 486 L510 668 Z" fill="#9edeea" opacity=".72"/>
+  <path d="M626 668 L782 520 L934 670 Z" fill="#9be0eb" opacity=".66"/>
+  <g transform="translate(164 596)">
+    <rect x="66" y="72" width="46" height="116" rx="10" fill="#fff" opacity=".95"/>
+    <path d="M46 74 L88 18 L132 74 Z" fill="#ed6b6d"/>
+    <rect x="74" y="116" width="30" height="72" rx="14" fill="#3c7fdc"/>
+    <circle cx="89" cy="72" r="12" fill="#2f74c9"/>
+    <path d="M89 72 L22 18" stroke="#6fb4e9" stroke-width="13" stroke-linecap="round"/>
+    <path d="M89 72 L152 14" stroke="#6fb4e9" stroke-width="13" stroke-linecap="round"/>
+    <path d="M89 72 L156 128" stroke="#6fb4e9" stroke-width="13" stroke-linecap="round"/>
+    <path d="M89 72 L24 132" stroke="#6fb4e9" stroke-width="13" stroke-linecap="round"/>
+  </g>
+  <path d="M54 576 C78 550 106 550 130 576" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round" opacity=".85"/>
+  <path d="M424 552 C448 526 478 526 502 552" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round" opacity=".85"/>
+  <path d="M512 684 C536 658 566 658 590 684" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round" opacity=".75"/>
+</svg>

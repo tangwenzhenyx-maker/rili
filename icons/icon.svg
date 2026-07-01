@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="万年历图标">
+  <rect width="512" height="512" rx="96" fill="#b3261e"/>
+  <rect x="78" y="118" width="356" height="306" rx="36" fill="#fff8ef"/>
+  <rect x="78" y="118" width="356" height="82" rx="36" fill="#f4c36a"/>
+  <rect x="118" y="86" width="42" height="82" rx="21" fill="#172033"/>
+  <rect x="352" y="86" width="42" height="82" rx="21" fill="#172033"/>
+  <text x="256" y="342" text-anchor="middle" font-size="138" font-weight="800" font-family="PingFang SC, Microsoft YaHei, sans-serif" fill="#172033">历</text>
+</svg>
