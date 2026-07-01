@@ -2,6 +2,7 @@ const CURRENT_PLACE_KEY = "current";
 const WEATHER_PLACE_STORAGE = "rili-weather-place-v4";
 const WEATHER_CACHE_STORAGE = "rili-weather-cache-v4";
 const WEATHER_FALLBACK_PLACE_KEY = "xiamen";
+const WEATHER_PROXY_ENDPOINT = "";
 
 const state = {
   activeView: "home",
@@ -577,6 +578,35 @@ function toRadians(value) {
 }
 
 async function fetchWeather(place) {
+  if (WEATHER_PROXY_ENDPOINT) {
+    try {
+      return await fetchProxyWeather(place);
+    } catch (error) {
+      // Keep the public fallback so the app still works while the private proxy is not ready.
+    }
+  }
+
+  return fetchOpenMeteoWeather(place);
+}
+
+async function fetchProxyWeather(place) {
+  const params = new URLSearchParams({
+    lat: place.latitude,
+    lon: place.longitude,
+  });
+  const response = await fetch(`${WEATHER_PROXY_ENDPOINT}?${params.toString()}`, { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(`proxy weather ${response.status}`);
+  }
+
+  const weather = await response.json();
+  if (!weather?.forecast?.current) {
+    throw new Error("proxy weather invalid");
+  }
+  return weather;
+}
+
+async function fetchOpenMeteoWeather(place) {
   const forecastParams = new URLSearchParams({
     latitude: place.latitude,
     longitude: place.longitude,
@@ -604,10 +634,10 @@ async function fetchWeather(place) {
 
   const forecast = await forecastResponse.json();
   const air = airResponse.ok ? await airResponse.json() : null;
-  return { forecast, air };
+  return { source: "Open-Meteo", forecast, air };
 }
 
-function setWeatherLoading(place, sourceText = "正在连接 Open-Meteo") {
+function setWeatherLoading(place, sourceText = "正在连接天气服务") {
   els.homeWeatherDesc.textContent = `${place.name} · 正在获取天气`;
   els.homeWeatherSource.textContent = sourceText;
   els.weatherTitle.textContent = "正在获取天气";
@@ -626,11 +656,11 @@ function renderWeather(place, weather, fromCache = false) {
   const daily = forecast.daily || {};
   const temp = Math.round(current.temperature_2m);
   const feels = Math.round(current.apparent_temperature);
-  const desc = getWeatherText(current.weather_code, current.precipitation, false);
+  const desc = getWeatherText(current.weather_code, current.precipitation, false, current.weather_text);
   const detail = WEATHER_DETAILS[current.weather_code] || "";
   const aqi = air.current?.us_aqi;
   const airText = getAirQualityText(aqi);
-  const sourceText = fromCache ? "上次缓存 · 联网后刷新" : `Open-Meteo 在线天气 · ${formatWeatherTime(current.time)}`;
+  const sourceText = getWeatherSourceText(weather, current, fromCache);
 
   els.homeWeatherTemp.textContent = Number.isFinite(temp) ? `${temp}°` : "--°";
   els.homeWeatherDesc.textContent = `${place.name} · ${desc}`;
@@ -666,7 +696,7 @@ function renderHourly(forecast, updatedAt = "") {
         <span>${formatHourLabel(hour.time, i)}</span>
         ${getWeatherIcon(hour.code)}
         <strong>${formatNumber(hour.temp)}°C</strong>
-        <em>${getWeatherText(hour.code, hour.amount, false)} · ${formatRain(hour.rain, hour.amount)}</em>
+        <em>${getWeatherText(hour.code, hour.amount, false, hour.text)} · ${formatRain(hour.rain, hour.amount)}</em>
         <small>风速 ${formatNumber(hour.wind)} km/h</small>
       `;
     } else {
@@ -698,7 +728,7 @@ function renderForecast(daily, updatedAt = "") {
     item.innerHTML = `
       <span>${i === 0 ? "今天" : i === 1 ? "明天" : `周${WEEKDAYS[date.getDay()]}`} · ${pad(date.getMonth() + 1)}/${pad(date.getDate())}</span>
       ${getWeatherIcon(code)}
-      <strong>${getWeatherText(code, rainSum, true)}</strong>
+      <strong>${getWeatherText(code, rainSum, true, daily.weather_text?.[i])}</strong>
       <em>${Number.isFinite(min) && Number.isFinite(max) ? `${min}/${max}°C` : "--/--°C"}${Number.isFinite(rain) ? ` · ${rain}%` : ""}${Number.isFinite(rainSum) ? ` · ${rainSum.toFixed(1)}mm` : ""}</em>
     `;
     els.forecastStrip.appendChild(item);
@@ -766,7 +796,16 @@ function registerServiceWorker() {
   });
 }
 
+function getWeatherSourceText(weather, current, fromCache) {
+  if (fromCache) return "上次缓存 · 联网后刷新";
+  const source = weather.source || "Open-Meteo";
+  const sourceLabel = source === "QWeather" ? "和风天气" : source;
+  return `${sourceLabel} · ${formatWeatherTime(current.time)}`;
+}
+
 function getRainTip(forecast, detail = "") {
+  if (forecast.minutely?.summary) return forecast.minutely.summary;
+
   const nextHours = getNextHours(forecast, 2);
   const probabilities = nextHours.map((hour) => hour.rain).filter(Number.isFinite);
   const amounts = nextHours.map((hour) => hour.amount).filter(Number.isFinite);
@@ -797,6 +836,7 @@ function getNextHours(forecast, count) {
     rain: hourly.precipitation_probability?.[safeStart + index],
     amount: hourly.precipitation?.[safeStart + index],
     wind: hourly.wind_speed_10m?.[safeStart + index],
+    text: hourly.weather_text?.[safeStart + index],
   }));
 }
 
@@ -807,7 +847,8 @@ function formatRain(probability, amount) {
   return parts.length ? parts.join(" · ") : "待联网";
 }
 
-function getWeatherText(code, rainAmount, isDaily) {
+function getWeatherText(code, rainAmount, isDaily, fallbackText = "") {
+  if (fallbackText) return fallbackText;
   const base = WEATHER_CODES[code] || "天气";
   if ((code === 95 || code === 96 || code === 99) && !isDaily && Number.isFinite(rainAmount) && rainAmount <= 0) {
     return "雷阵雨风险";

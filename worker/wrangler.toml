@@ -1,0 +1,6 @@
+name = "rili-weather-proxy"
+main = "weather-proxy.js"
+compatibility_date = "2026-07-01"
+
+[vars]
+ALLOWED_ORIGIN = "https://tangwenzhenyx-maker.github.io"
