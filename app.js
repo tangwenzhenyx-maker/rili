@@ -1,14 +1,15 @@
+const CURRENT_PLACE_KEY = "current";
+const WEATHER_PLACE_STORAGE = "rili-weather-place-v4";
+const WEATHER_CACHE_STORAGE = "rili-weather-cache-v4";
+const WEATHER_FALLBACK_PLACE_KEY = "xiamen";
+
 const state = {
   activeView: "home",
   currentMonth: startOfMonth(new Date()),
   selectedDate: stripTime(new Date()),
-  weatherPlace: "tongan",
+  weatherPlace: CURRENT_PLACE_KEY,
   lastWeather: null,
 };
-
-const WEATHER_PLACE_STORAGE = "rili-weather-place-v3";
-const WEATHER_CACHE_STORAGE = "rili-weather-cache-v3";
-const CURRENT_PLACE_KEY = "current";
 
 const els = {};
 
@@ -184,6 +185,7 @@ function bindElements() {
     "weatherSource",
     "hourlyUpdate",
     "hourlyStrip",
+    "forecastUpdate",
     "forecastStrip",
     "prevMonth",
     "nextMonth",
@@ -261,7 +263,7 @@ function restoreState() {
   const cached = getCachedWeather();
   const expectedPlace = CITIES[state.weatherPlace] || null;
   const cacheMatches = state.weatherPlace === CURRENT_PLACE_KEY
-    ? cached?.place?.name === "当前位置"
+    ? isCurrentLocationPlace(cached?.place)
     : cached?.place?.name === expectedPlace?.name;
   if (cached && cacheMatches) {
     renderWeather(cached.place, cached.weather, true);
@@ -460,8 +462,7 @@ function isLunarNewYearEve(date) {
 
 async function refreshWeather() {
   if (state.weatherPlace === CURRENT_PLACE_KEY) {
-    refreshCurrentLocationWeather();
-    return;
+    return refreshCurrentLocationWeather();
   }
 
   const place = CITIES[state.weatherPlace] || CITIES.xiamen;
@@ -490,7 +491,7 @@ function enableCurrentLocationWeather() {
 
 async function refreshCurrentLocationWeather() {
   const currentPlace = { name: "当前位置", latitude: 0, longitude: 0 };
-  setWeatherLoading(currentPlace);
+  setWeatherLoading(currentPlace, "正在定位当前位置");
 
   try {
     const place = await getCurrentPositionPlace();
@@ -499,16 +500,26 @@ async function refreshCurrentLocationWeather() {
     renderWeather(place, weather, false);
   } catch (error) {
     const cached = getCachedWeather();
-    if (cached?.place?.name === "当前位置") {
+    if (isCurrentLocationPlace(cached?.place)) {
       renderWeather(cached.place, cached.weather, true);
       els.weatherSource.textContent = "定位失败 · 显示上次当前位置缓存";
       els.homeWeatherSource.textContent = "定位失败 · 上次缓存";
       return;
     }
-    renderWeatherFallback(currentPlace);
-    const message = window.isSecureContext ? "定位未授权" : "定位需要 HTTPS，GitHub Pages 上可用";
-    els.weatherSource.textContent = message;
-    els.homeWeatherSource.textContent = message;
+
+    const fallbackPlace = CITIES[WEATHER_FALLBACK_PLACE_KEY];
+    try {
+      const weather = await fetchWeather(fallbackPlace);
+      renderWeather(fallbackPlace, weather, false);
+      const message = window.isSecureContext ? "定位未授权 · 显示厦门固定天气" : "定位需要 HTTPS · 显示厦门固定天气";
+      els.weatherSource.textContent = message;
+      els.homeWeatherSource.textContent = message;
+    } catch (fallbackError) {
+      renderWeatherFallback(currentPlace);
+      const message = window.isSecureContext ? "定位未授权" : "定位需要 HTTPS，GitHub Pages 上可用";
+      els.weatherSource.textContent = message;
+      els.homeWeatherSource.textContent = message;
+    }
   }
 }
 
@@ -521,16 +532,48 @@ function getCurrentPositionPlace() {
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        const latitude = Number(position.coords.latitude.toFixed(4));
+        const longitude = Number(position.coords.longitude.toFixed(4));
+        const nearest = getNearestKnownPlace(latitude, longitude);
         resolve({
-          name: "当前位置",
-          latitude: Number(position.coords.latitude.toFixed(4)),
-          longitude: Number(position.coords.longitude.toFixed(4)),
+          name: nearest ? `当前位置（${nearest.name}）` : "当前位置",
+          latitude,
+          longitude,
         });
       },
       reject,
-      { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 300000 },
     );
   });
+}
+
+function isCurrentLocationPlace(place) {
+  return typeof place?.name === "string" && place.name.startsWith("当前位置");
+}
+
+function getNearestKnownPlace(latitude, longitude) {
+  const places = Object.values(CITIES)
+    .map((place) => ({
+      ...place,
+      distance: getDistanceKm(latitude, longitude, place.latitude, place.longitude),
+    }))
+    .sort((a, b) => a.distance - b.distance);
+
+  const nearest = places[0];
+  return nearest && nearest.distance <= 80 ? nearest : null;
+}
+
+function getDistanceKm(lat1, lon1, lat2, lon2) {
+  const radius = 6371;
+  const dLat = toRadians(lat2 - lat1);
+  const dLon = toRadians(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) * Math.sin(dLon / 2) ** 2;
+  return radius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function toRadians(value) {
+  return value * Math.PI / 180;
 }
 
 async function fetchWeather(place) {
@@ -540,8 +583,8 @@ async function fetchWeather(place) {
     current: "temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,precipitation",
     hourly: "temperature_2m,weather_code,precipitation_probability,precipitation,wind_speed_10m",
     daily: "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum",
-    forecast_days: "14",
     timezone: "auto",
+    forecast_days: "14",
   });
   const airParams = new URLSearchParams({
     latitude: place.latitude,
@@ -564,13 +607,15 @@ async function fetchWeather(place) {
   return { forecast, air };
 }
 
-function setWeatherLoading(place) {
+function setWeatherLoading(place, sourceText = "正在连接 Open-Meteo") {
   els.homeWeatherDesc.textContent = `${place.name} · 正在获取天气`;
-  els.homeWeatherSource.textContent = "正在连接 Open-Meteo";
+  els.homeWeatherSource.textContent = sourceText;
   els.weatherTitle.textContent = "正在获取天气";
-  els.weatherSource.textContent = "正在连接 Open-Meteo";
+  els.weatherSource.textContent = sourceText;
   els.homeWeatherIcon.innerHTML = getWeatherIcon(null);
   els.weatherMainIcon.innerHTML = getWeatherIcon(null);
+  els.hourlyUpdate.textContent = "同步中";
+  els.forecastUpdate.textContent = "同步中";
 }
 
 function renderWeather(place, weather, fromCache = false) {
@@ -603,14 +648,14 @@ function renderWeather(place, weather, fromCache = false) {
   els.weatherTip.textContent = getRainTip(forecast, detail);
   els.weatherSource.textContent = sourceText;
 
-  renderHourly(forecast);
-  renderForecast(daily);
+  renderHourly(forecast, current.time);
+  renderForecast(daily, current.time);
 }
 
-function renderHourly(forecast) {
+function renderHourly(forecast, updatedAt = "") {
   const hours = getNextHours(forecast, 2);
   els.hourlyStrip.innerHTML = "";
-  els.hourlyUpdate.textContent = hours.length ? "按本地时间" : "暂无逐小时数据";
+  els.hourlyUpdate.textContent = hours.length ? `已同步 ${formatWeatherTime(updatedAt)}` : "暂无逐小时数据";
 
   for (let i = 0; i < 2; i += 1) {
     const hour = hours[i];
@@ -637,9 +682,10 @@ function renderHourly(forecast) {
   }
 }
 
-function renderForecast(daily) {
+function renderForecast(daily, updatedAt = "") {
   els.forecastStrip.innerHTML = "";
   const count = Math.min(daily.time?.length || 14, 14);
+  els.forecastUpdate.textContent = daily.time?.length ? `${count}天 · ${formatWeatherTime(updatedAt)}` : "暂无14天数据";
   for (let i = 0; i < count; i += 1) {
     const item = document.createElement("div");
     item.className = "forecast-day";
@@ -675,6 +721,8 @@ function renderWeatherFallback(place) {
   els.weatherHumidity.textContent = "湿度 --";
   els.weatherTip.textContent = "需要联网获取实时天气";
   els.weatherSource.textContent = "未获取到在线天气";
+  els.hourlyUpdate.textContent = "暂无逐小时数据";
+  els.forecastUpdate.textContent = "暂无14天数据";
   renderHourly({});
   renderForecast({});
 }
