@@ -2,7 +2,7 @@ const CURRENT_PLACE_KEY = "current";
 const WEATHER_PLACE_STORAGE = "rili-weather-place-v4";
 const WEATHER_CACHE_STORAGE = "rili-weather-cache-v4";
 const WEATHER_FALLBACK_PLACE_KEY = "xiamen";
-const WEATHER_PROXY_ENDPOINT = "";
+const WEATHER_PROXY_ENDPOINT = "https://rili-weather-proxy.tangwenzhenyx-rili.workers.dev/weather";
 
 const state = {
   activeView: "home",
