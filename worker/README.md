@@ -7,6 +7,8 @@
 - `QWEATHER_API_HOST`：和风控制台里的专属 API Host，例如 `abc1234xyz.def.qweatherapi.com`
 - `QWEATHER_API_KEY`：和风项目里的 API KEY 凭据
 
+和风官方说明：API Host 也是身份认证的一部分，公共 API 地址会逐步停止服务，所以只配置 API Key 不够。
+
 ## 部署步骤
 
 ```bash
