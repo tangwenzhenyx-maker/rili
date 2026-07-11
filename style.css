@@ -169,6 +169,7 @@ input:focus-visible {
 .home-weather,
 .today-card,
 .selected-day,
+.reminder-card,
 .forecast-panel {
   margin: 12px;
   border-radius: 8px;
@@ -449,6 +450,87 @@ input:focus-visible {
 .selected-day__tags {
   flex-basis: 100%;
   margin-top: 0;
+}
+
+.reminder-card {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.reminder-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.reminder-card h2 {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.shortcut-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  border-radius: 999px;
+  padding: 0 10px;
+  background: #ebf4ff;
+  color: var(--blue-deep);
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.form-field {
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.form-field input {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfd;
+  color: var(--ink);
+  padding: 0 12px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.form-field--time {
+  max-width: 180px;
+}
+
+.reminder-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.primary-action {
+  min-height: 42px;
+  border-radius: 999px;
+  padding: 0 18px;
+  background: var(--red);
+  color: #fff;
+  font-weight: 800;
+  box-shadow: 0 8px 18px rgba(233, 43, 58, 0.2);
+}
+
+.reminder-actions p {
+  flex: 1 1 180px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .weather-stage {

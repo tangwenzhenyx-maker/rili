@@ -3,6 +3,7 @@ const WEATHER_PLACE_STORAGE = "rili-weather-place-v4";
 const WEATHER_CACHE_STORAGE = "rili-weather-cache-v4";
 const WEATHER_FALLBACK_PLACE_KEY = "xiamen";
 const WEATHER_PROXY_ENDPOINT = "https://rili-weather-proxy.tangwenzhenyx-rili.workers.dev/weather";
+const REMINDER_SHORTCUT_NAME = "万年历添加提醒";
 
 const state = {
   activeView: "home",
@@ -197,6 +198,11 @@ function bindElements() {
     "selectedTitle",
     "selectedLunar",
     "selectedTags",
+    "reminderDateHint",
+    "reminderTitleInput",
+    "reminderTimeInput",
+    "addReminderButton",
+    "reminderStatus",
   ].forEach((id) => {
     els[id] = document.getElementById(id);
   });
@@ -250,6 +256,8 @@ function bindEvents() {
     renderCalendar();
     renderSelectedDay();
   });
+
+  els.addReminderButton.addEventListener("click", addSelectedDateReminder);
 }
 
 function restoreState() {
@@ -359,7 +367,40 @@ function renderSelectedDay() {
 
   els.selectedTitle.textContent = `${date.getMonth() + 1}月${date.getDate()}日 星期${WEEKDAYS[date.getDay()]}`;
   els.selectedLunar.textContent = `${date.getFullYear()}年 · ${lunar.monthText}${lunar.dayText} · ${lunar.yearName}年`;
+  els.reminderDateHint.textContent = `${date.getMonth() + 1}月${date.getDate()}日 星期${WEEKDAYS[date.getDay()]}`;
+  els.reminderStatus.textContent = `将写入“${REMINDER_SHORTCUT_NAME}”快捷指令`;
   renderTags(els.selectedTags, makeTagValues(date, badges, holiday, term), "color");
+}
+
+function addSelectedDateReminder() {
+  const title = els.reminderTitleInput.value.trim();
+  const dueTime = els.reminderTimeInput.value || "09:00";
+  if (!title) {
+    els.reminderStatus.textContent = "先写待办内容";
+    els.reminderTitleInput.focus();
+    return;
+  }
+
+  const payload = {
+    version: 1,
+    source: "rili-pwa",
+    title,
+    dueDate: toInputDate(state.selectedDate),
+    dueTime,
+    due: `${toInputDate(state.selectedDate)} ${dueTime}`,
+    notes: `来自万年历 · ${formatReminderDate(state.selectedDate)}`,
+  };
+  const shortcutUrl = makeShortcutUrl(REMINDER_SHORTCUT_NAME, payload);
+  els.reminderStatus.textContent = "已唤起快捷指令；若未打开，请先创建同名快捷指令";
+  window.location.href = shortcutUrl;
+}
+
+function makeShortcutUrl(name, payload) {
+  return `shortcuts://run-shortcut?name=${encodeURIComponent(name)}&input=text&text=${encodeURIComponent(JSON.stringify(payload))}`;
+}
+
+function formatReminderDate(date) {
+  return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 星期${WEEKDAYS[date.getDay()]}`;
 }
 
 function renderTags(container, values, style) {

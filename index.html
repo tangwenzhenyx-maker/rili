@@ -87,6 +87,28 @@
           <button class="today-button" type="button" id="todayButton">今天</button>
           <div class="tag-row selected-day__tags" id="selectedTags"></div>
         </section>
+
+        <section class="reminder-card" aria-label="提醒事项">
+          <div class="reminder-card__head">
+            <div>
+              <span class="section-label">提醒事项</span>
+              <h2 id="reminderDateHint">选中日期</h2>
+            </div>
+            <span class="shortcut-badge">快捷指令</span>
+          </div>
+          <label class="form-field">
+            <span>内容</span>
+            <input id="reminderTitleInput" type="text" inputmode="text" autocomplete="off" placeholder="写一件要提醒的事" />
+          </label>
+          <label class="form-field form-field--time">
+            <span>时间</span>
+            <input id="reminderTimeInput" type="time" value="09:00" />
+          </label>
+          <div class="reminder-actions">
+            <button class="primary-action" type="button" id="addReminderButton">加入提醒事项</button>
+            <p id="reminderStatus">首次使用需先创建同名快捷指令</p>
+          </div>
+        </section>
       </section>
 
       <section class="view view--weather" id="weatherView" aria-labelledby="weatherTitle">
