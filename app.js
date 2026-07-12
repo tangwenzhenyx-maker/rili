@@ -4,6 +4,7 @@ const WEATHER_CACHE_STORAGE = "rili-weather-cache-v4";
 const WEATHER_FALLBACK_PLACE_KEY = "xiamen";
 const WEATHER_PROXY_ENDPOINT = "https://rili-weather-proxy.tangwenzhenyx-rili.workers.dev/weather";
 const REMINDER_SHORTCUT_NAME = "万年历添加提醒";
+const TODO_STORAGE = "rili-todos-v1";
 
 const state = {
   activeView: "home",
@@ -11,6 +12,7 @@ const state = {
   selectedDate: stripTime(new Date()),
   weatherPlace: CURRENT_PLACE_KEY,
   lastWeather: null,
+  todoItems: [],
 };
 
 const els = {};
@@ -203,6 +205,7 @@ function bindElements() {
     "reminderTimeInput",
     "addReminderButton",
     "reminderStatus",
+    "todoList",
   ].forEach((id) => {
     els[id] = document.getElementById(id);
   });
@@ -261,6 +264,8 @@ function bindEvents() {
 }
 
 function restoreState() {
+  state.todoItems = loadTodoItems();
+
   const savedPlace = localStorage.getItem(WEATHER_PLACE_STORAGE);
   if (savedPlace === CURRENT_PLACE_KEY || CITIES[savedPlace]) {
     state.weatherPlace = savedPlace;
@@ -336,6 +341,7 @@ function renderCalendar() {
     const badges = getDayBadges(date, lunar);
     const holiday = getHolidayOverride(date);
     const label = badges[0] || lunar.dayText;
+    const todoCount = getTodosForDate(dateKey).length;
     const button = document.createElement("button");
     button.type = "button";
     button.className = [
@@ -353,6 +359,7 @@ function renderCalendar() {
       <strong>${date.getDate()}</strong>
       ${holiday ? `<span class="holiday-badge holiday-badge--${holiday.type}">${holiday.type === "rest" ? "休" : "班"}</span>` : ""}
       <span class="festival ${isRedBadge(label) ? "is-red" : ""}">${label}</span>
+      ${todoCount ? `<span class="todo-dot" aria-label="${todoCount}条待办">${todoCount}</span>` : ""}
     `;
     els.calendarGrid.appendChild(button);
   }
@@ -370,6 +377,7 @@ function renderSelectedDay() {
   els.reminderDateHint.textContent = `${date.getMonth() + 1}月${date.getDate()}日 星期${WEEKDAYS[date.getDay()]}`;
   els.reminderStatus.textContent = `将写入“${REMINDER_SHORTCUT_NAME}”快捷指令`;
   renderTags(els.selectedTags, makeTagValues(date, badges, holiday, term), "color");
+  renderTodoList(toInputDate(date));
 }
 
 function addSelectedDateReminder() {
@@ -390,9 +398,73 @@ function addSelectedDateReminder() {
     due: `${toInputDate(state.selectedDate)} ${dueTime}`,
     notes: `来自万年历 · ${formatReminderDate(state.selectedDate)}`,
   };
+  const item = {
+    id: `${payload.dueDate}-${dueTime}-${Date.now()}`,
+    title,
+    date: payload.dueDate,
+    time: dueTime,
+    notes: payload.notes,
+    createdAt: new Date().toISOString(),
+  };
+  state.todoItems.push(item);
+  saveTodoItems();
+  els.reminderTitleInput.value = "";
+  renderCalendar();
+  renderSelectedDay();
   const shortcutUrl = makeShortcutUrl(REMINDER_SHORTCUT_NAME, payload);
-  els.reminderStatus.textContent = "已唤起快捷指令；若未打开，请先创建同名快捷指令";
+  els.reminderStatus.textContent = "已保存到万年历，并正在打开提醒事项快捷指令";
   window.location.href = shortcutUrl;
+}
+
+function renderTodoList(dateKey) {
+  const todos = getTodosForDate(dateKey);
+  if (!todos.length) {
+    els.todoList.innerHTML = `<p class="todo-empty">这一天还没有从万年历添加的待办</p>`;
+    return;
+  }
+
+  els.todoList.innerHTML = todos.map((todo) => `
+    <article class="todo-item">
+      <time>${escapeHtml(todo.time)}</time>
+      <strong>${escapeHtml(todo.title)}</strong>
+    </article>
+  `).join("");
+}
+
+function getTodosForDate(dateKey) {
+  return state.todoItems
+    .filter((item) => item.date === dateKey)
+    .sort((a, b) => `${a.time} ${a.createdAt}`.localeCompare(`${b.time} ${b.createdAt}`));
+}
+
+function loadTodoItems() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(TODO_STORAGE) || "[]");
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((item) =>
+      item
+      && typeof item.id === "string"
+      && typeof item.title === "string"
+      && typeof item.date === "string"
+      && typeof item.time === "string",
+    );
+  } catch (error) {
+    return [];
+  }
+}
+
+function saveTodoItems() {
+  localStorage.setItem(TODO_STORAGE, JSON.stringify(state.todoItems));
+}
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "\"": "&quot;",
+    "'": "&#39;",
+  }[char]));
 }
 
 function makeShortcutUrl(name, payload) {
